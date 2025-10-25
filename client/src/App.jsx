@@ -116,8 +116,22 @@ export default function LoyaltyProgram() {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Award className="w-8 h-8 text-purple-600" />
-              <span className="text-2xl font-bold text-purple-600">MADERISTAS</span>
+              <button
+                type="button"
+                onClick={() => navigateTo('rewards')}
+                className="flex items-center gap-2 group focus:outline-none"
+                aria-label="Ir al inicio"
+                title="Inicio"
+              >
+                <img
+                  src="/logo.png"
+                  alt="Maderistas"
+                  className="h-8 w-8 object-contain"
+                />
+                <span className="text-2xl font-bold text-purple-600 group-hover:opacity-90">
+                  MADERISTAS
+                </span>
+              </button>
             </div>
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2 rounded-lg hover:bg-purple-100">
               <Menu className="w-6 h-6 text-purple-600" />
