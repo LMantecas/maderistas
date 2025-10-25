@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Camera, Award, Trophy, Users, Mail, Settings, LogOut, Edit, Trash, Check, X, Search, Crown, Star, Menu, ArrowLeft, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 // const API_URL = 'http://localhost:3000/api';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_HOST = API_URL.replace(/\/api\/?$/, '');
 
 export default function LoyaltyProgram() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -284,7 +284,8 @@ function RewardsSection({ rewards, banner, currentUser, setSelectedReward }) {
     <div>
       {banner && banner.image_path && (
         <div className="w-full h-64 rounded-2xl overflow-hidden mb-8 cursor-pointer shadow-xl" onClick={() => banner.url && window.open(banner.url, '_blank')}>
-          <img src={`http://localhost:3000${banner.image_path}`} alt="Banner" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+          {/* <img src={`http://localhost:3000${banner.image_path}`} alt="Banner" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" /> */}
+          <img src={`${API_HOST}${banner.image_path}`} alt="Banner" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
         </div>
       )}
       <h2 className="text-3xl font-bold mb-6 text-purple-600">Recompensas Disponibles</h2>
@@ -474,7 +475,8 @@ function RankingSection({ ranking, currentUser }) {
             </div>
             <div className="w-14 h-14 rounded-full bg-purple-200 flex items-center justify-center overflow-hidden mr-4">
               {user.photo ? (
-                <img src={`http://localhost:3000${user.photo}`} alt={user.name} className="w-full h-full object-cover" />
+                // <img src={`http://localhost:3000${user.photo}`} alt={user.name} className="w-full h-full object-cover" />
+                <img src={`${API_HOST}${user.photo}`} alt={user.name} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-2xl font-bold text-purple-600">{user.username[0].toUpperCase()}</span>
               )}
@@ -902,7 +904,8 @@ function SubmissionsTab() {
                   <span className="inline-block mt-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">Vale {sub.points} puntos</span>
                 </div>
               </div>
-              <div className="mb-4"><a href={`http://localhost:3000${sub.file_path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Ver archivo enviado →</a></div>
+              {/* <div className="mb-4"><a href={`http://localhost:3000${sub.file_path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Ver archivo enviado →</a></div> */}
+              <div className="mb-4"><a href={`${API_HOST}${sub.file_path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Ver archivo enviado →</a></div>
               <div className="flex gap-3">
                 <button onClick={() => handleApprove(sub.id)} className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600"><Check className="w-5 h-5" /> Aprobar</button>
                 <button onClick={() => handleReject(sub.id)} className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600"><X className="w-5 h-5" /> Rechazar</button>
