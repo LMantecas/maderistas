@@ -3,3 +3,7 @@ node_modules/
 loyalty.db
 uploads/
 *.log
+database.sqlite
+*.db
+*.sqlite
+.DS_Store
