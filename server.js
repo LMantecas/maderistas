@@ -26,6 +26,17 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Servidor funcionando correctamente',
+    timestamp: new Date().toISOString(),
+    database: 'PostgreSQL',
+    version: '1.0.1'
+  });
+});
+
 // Crear carpetas necesarias
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 if (!fs.existsSync('uploads/profiles')) fs.mkdirSync('uploads/profiles');
