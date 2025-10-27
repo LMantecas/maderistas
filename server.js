@@ -1,5 +1,5 @@
 // server.js - Backend del Programa de Lealtad con PostgreSQL
-// Instalar dependencias: npm install express pg multer bcrypt jsonwebtoken cors dotenv
+// VERSIÓN COMPLETA: Incluye optimización de imágenes, duplicar recompensas, editar foto de perfil
 
 const express = require('express');
 const { Pool } = require('pg');
@@ -15,11 +15,22 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'tu-secreto-super-seguro-cambialo';
 
-// Configurar PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Importar optimizador de imágenes
+const { optimizeImage, cleanupOldSubmissions } = require('./image-optimizer');
+
+// Configurar PostgreSQL con manejo de SSL
+const isProduction = process.env.NODE_ENV === 'production';
+const dbConfig = {
+  connectionString: process.env.DATABASE_URL
+};
+
+if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')) {
+  dbConfig.ssl = {
+    rejectUnauthorized: false
+  };
+}
+
+const pool = new Pool(dbConfig);
 
 // Middleware
 app.use(cors());
@@ -33,7 +44,7 @@ app.get('/api/health', (req, res) => {
     message: 'Servidor funcionando correctamente',
     timestamp: new Date().toISOString(),
     database: 'PostgreSQL',
-    version: '1.0.1'
+    version: '1.1.0'
   });
 });
 
@@ -59,7 +70,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB - Aceptamos archivos grandes, los optimizaremos después
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -74,7 +85,6 @@ const initDatabase = async () => {
   try {
     console.log('🔄 Inicializando base de datos PostgreSQL...');
     
-    // Tabla de usuarios
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -89,7 +99,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Tabla de recompensas
     await pool.query(`
       CREATE TABLE IF NOT EXISTS rewards (
         id SERIAL PRIMARY KEY,
@@ -104,7 +113,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Tabla de envíos/submissions
     await pool.query(`
       CREATE TABLE IF NOT EXISTS submissions (
         id SERIAL PRIMARY KEY,
@@ -120,7 +128,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Tabla de mensajes de contacto
     await pool.query(`
       CREATE TABLE IF NOT EXISTS contact_messages (
         id SERIAL PRIMARY KEY,
@@ -133,7 +140,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Tabla de configuración
     await pool.query(`
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
@@ -141,7 +147,6 @@ const initDatabase = async () => {
       )
     `);
 
-    // Crear usuario admin por defecto
     const adminPassword = await bcrypt.hash('admin123', 10);
     await pool.query(`
       INSERT INTO users (username, password, name, email, is_admin) 
@@ -158,6 +163,13 @@ const initDatabase = async () => {
 
 initDatabase();
 
+// Limpieza automática de archivos antiguos
+setInterval(() => {
+  cleanupOldSubmissions(pool);
+}, 24 * 60 * 60 * 1000); // Cada 24 horas
+
+setTimeout(() => cleanupOldSubmissions(pool), 10000); // 10 segundos después de iniciar
+
 // Middleware de autenticación
 const authenticateToken = (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
@@ -170,7 +182,6 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Middleware para verificar admin
 const isAdmin = (req, res, next) => {
   if (!req.user.is_admin) return res.status(403).json({ error: 'Acceso denegado' });
   next();
@@ -178,8 +189,8 @@ const isAdmin = (req, res, next) => {
 
 // ==================== RUTAS DE AUTENTICACIÓN ====================
 
-// Registro
-app.post('/api/auth/register', upload.single('photo'), async (req, res) => {
+// Registro (CON OPTIMIZACIÓN)
+app.post('/api/auth/register', upload.single('photo'), optimizeImage('profile'), async (req, res) => {
   try {
     const { username, password, name, email } = req.body;
     const photo = req.file ? `/uploads/profiles/${req.file.filename}` : null;
@@ -260,9 +271,163 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   }
 });
 
+// NUEVO: Actualizar foto de perfil
+app.post('/api/auth/update-photo', authenticateToken, upload.single('photo'), optimizeImage('profile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
+    }
+
+    const photo = `/uploads/profiles/${req.file.filename}`;
+    
+    const oldPhotoResult = await pool.query(
+      'SELECT photo FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    
+    const oldPhoto = oldPhotoResult.rows[0]?.photo;
+    
+    await pool.query(
+      'UPDATE users SET photo = $1 WHERE id = $2',
+      [photo, req.user.id]
+    );
+    
+    if (oldPhoto && oldPhoto !== photo) {
+      const oldPhotoPath = path.join(__dirname, oldPhoto);
+      if (fs.existsSync(oldPhotoPath)) {
+        fs.unlinkSync(oldPhotoPath);
+      }
+    }
+    
+    res.json({ 
+      message: 'Foto actualizada exitosamente',
+      photo: photo
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// NUEVO: Eliminar foto de perfil
+app.delete('/api/auth/delete-photo', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT photo FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    
+    const photo = result.rows[0]?.photo;
+    
+    await pool.query(
+      'UPDATE users SET photo = NULL WHERE id = $1',
+      [req.user.id]
+    );
+    
+    if (photo) {
+      const photoPath = path.join(__dirname, photo);
+      if (fs.existsSync(photoPath)) {
+        fs.unlinkSync(photoPath);
+      }
+    }
+    
+    res.json({ message: 'Foto eliminada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// NUEVO: Actualizar perfil (nombre, email)
+app.put('/api/auth/update-profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    
+    if (email) {
+      const existingResult = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND id != $2',
+        [email, req.user.id]
+      );
+      
+      if (existingResult.rows.length > 0) {
+        return res.status(400).json({ error: 'El email ya está en uso' });
+      }
+    }
+    
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+    
+    if (name) {
+      updates.push(`name = $${paramCount}`);
+      values.push(name);
+      paramCount++;
+    }
+    
+    if (email) {
+      updates.push(`email = $${paramCount}`);
+      values.push(email);
+      paramCount++;
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+    
+    values.push(req.user.id);
+    
+    const query = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING id, username, name, email, photo, points, is_admin`;
+    
+    const result = await pool.query(query, values);
+    
+    res.json({ 
+      message: 'Perfil actualizado exitosamente',
+      user: result.rows[0]
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// NUEVO: Cambiar contraseña
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Se requieren ambas contraseñas' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+    
+    const result = await pool.query(
+      'SELECT password FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    
+    const user = result.rows[0];
+    
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Contraseña actual incorrecta' });
+    }
+    
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    await pool.query(
+      'UPDATE users SET password = $1 WHERE id = $2',
+      [hashedPassword, req.user.id]
+    );
+    
+    res.json({ message: 'Contraseña actualizada exitosamente' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== RUTAS DE RECOMPENSAS ====================
 
-// Obtener todas las recompensas activas y no suspendidas
+// Obtener todas las recompensas activas
 app.get('/api/rewards', async (req, res) => {
   try {
     const token = req.headers['authorization']?.split(' ')[1];
@@ -283,7 +448,6 @@ app.get('/api/rewards', async (req, res) => {
       return res.json(result.rows);
     }
 
-    // Incluir estado de usuario
     const rewardsWithStatus = await Promise.all(
       result.rows.map(async (reward) => {
         const submissionResult = await pool.query(
@@ -359,7 +523,7 @@ app.get('/api/rewards/:id', async (req, res) => {
   }
 });
 
-// Crear recompensa (solo admin)
+// Crear recompensa
 app.post('/api/rewards', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { title, description, how_to_redeem, points, redeem_type } = req.body;
@@ -375,7 +539,7 @@ app.post('/api/rewards', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// Actualizar recompensa (solo admin)
+// Actualizar recompensa
 app.put('/api/rewards/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { title, description, how_to_redeem, points, redeem_type } = req.body;
@@ -391,7 +555,7 @@ app.put('/api/rewards/:id', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// Eliminar recompensa (solo admin)
+// Eliminar recompensa
 app.delete('/api/rewards/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     await pool.query('UPDATE rewards SET is_active = false WHERE id = $1', [req.params.id]);
@@ -401,7 +565,7 @@ app.delete('/api/rewards/:id', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// Suspender/Reactivar recompensa (solo admin)
+// Suspender/Reactivar recompensa
 app.patch('/api/rewards/:id/suspend', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { is_suspended } = req.body;
@@ -417,7 +581,46 @@ app.patch('/api/rewards/:id/suspend', authenticateToken, isAdmin, async (req, re
   }
 });
 
-// Obtener todas las recompensas para admin (incluyendo suspendidas)
+// NUEVO: Duplicar recompensa
+app.post('/api/rewards/:id/duplicate', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const originalResult = await pool.query(
+      'SELECT * FROM rewards WHERE id = $1',
+      [req.params.id]
+    );
+    
+    if (originalResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Recompensa no encontrada' });
+    }
+    
+    const original = originalResult.rows[0];
+    const newTitle = `${original.title} (Copia)`;
+    
+    const result = await pool.query(
+      `INSERT INTO rewards (title, description, how_to_redeem, points, redeem_type, is_active, is_suspended) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       RETURNING *`,
+      [
+        newTitle,
+        original.description,
+        original.how_to_redeem,
+        original.points,
+        original.redeem_type,
+        original.is_active,
+        false
+      ]
+    );
+    
+    res.json({ 
+      message: 'Recompensa duplicada exitosamente',
+      reward: result.rows[0]
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtener todas las recompensas para admin
 app.get('/api/rewards/admin/all', authenticateToken, isAdmin, async (req, res) => {
   try {
     const result = await pool.query(
@@ -429,10 +632,10 @@ app.get('/api/rewards/admin/all', authenticateToken, isAdmin, async (req, res) =
   }
 });
 
-// ==================== RUTAS DE ENVÍOS/SUBMISSIONS ====================
+// ==================== RUTAS DE ENVÍOS ====================
 
-// Enviar evidencia para una recompensa
-app.post('/api/submissions', authenticateToken, upload.single('file'), async (req, res) => {
+// Enviar evidencia (CON OPTIMIZACIÓN)
+app.post('/api/submissions', authenticateToken, upload.single('file'), optimizeImage('submission'), async (req, res) => {
   try {
     const { reward_id } = req.body;
     const file_path = `/uploads/submissions/${req.file.filename}`;
@@ -493,7 +696,7 @@ app.get('/api/submissions/my', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtener envíos pendientes (solo admin)
+// Obtener envíos pendientes
 app.get('/api/submissions/pending', authenticateToken, isAdmin, async (req, res) => {
   try {
     const result = await pool.query(
@@ -510,7 +713,7 @@ app.get('/api/submissions/pending', authenticateToken, isAdmin, async (req, res)
   }
 });
 
-// Aprobar envío (solo admin)
+// Aprobar envío
 app.post('/api/submissions/:id/approve', authenticateToken, isAdmin, async (req, res) => {
   const client = await pool.connect();
   
@@ -561,7 +764,7 @@ app.post('/api/submissions/:id/approve', authenticateToken, isAdmin, async (req,
   }
 });
 
-// Rechazar envío (solo admin)
+// Rechazar envío
 app.post('/api/submissions/:id/reject', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { reason } = req.body;
@@ -593,9 +796,8 @@ app.post('/api/submissions/:id/reject', authenticateToken, isAdmin, async (req, 
   }
 });
 
-// ==================== RUTAS DE RANKING ====================
+// ==================== RANKING ====================
 
-// Obtener ranking de usuarios
 app.get('/api/ranking', async (req, res) => {
   try {
     const result = await pool.query(
@@ -616,9 +818,8 @@ app.get('/api/ranking', async (req, res) => {
   }
 });
 
-// ==================== RUTAS DE CONTACTO ====================
+// ==================== CONTACTO ====================
 
-// Enviar mensaje de contacto
 app.post('/api/contact', authenticateToken, async (req, res) => {
   try {
     const { subject, type, message } = req.body;
@@ -634,7 +835,6 @@ app.post('/api/contact', authenticateToken, async (req, res) => {
   }
 });
 
-// Obtener mensajes de contacto (solo admin)
 app.get('/api/contact', authenticateToken, isAdmin, async (req, res) => {
   try {
     const result = await pool.query(
@@ -649,9 +849,8 @@ app.get('/api/contact', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// ==================== RUTAS DE CONFIGURACIÓN ====================
+// ==================== CONFIGURACIÓN ====================
 
-// Guardar configuración de colores
 app.post('/api/settings/colors', authenticateToken, isAdmin, async (req, res) => {
   try {
     const { primary_color, secondary_color } = req.body;
@@ -672,7 +871,6 @@ app.post('/api/settings/colors', authenticateToken, isAdmin, async (req, res) =>
   }
 });
 
-// Obtener configuración de colores
 app.get('/api/settings/colors', async (req, res) => {
   try {
     const result = await pool.query(
@@ -688,8 +886,8 @@ app.get('/api/settings/colors', async (req, res) => {
   }
 });
 
-// Guardar banner
-app.post('/api/settings/banner', authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
+// Guardar banner (CON OPTIMIZACIÓN)
+app.post('/api/settings/banner', authenticateToken, isAdmin, upload.single('image'), optimizeImage('banner'), async (req, res) => {
   try {
     const { url } = req.body;
     const image_path = req.file ? `/uploads/banners/${req.file.filename}` : null;
@@ -707,7 +905,6 @@ app.post('/api/settings/banner', authenticateToken, isAdmin, upload.single('imag
   }
 });
 
-// Obtener banner
 app.get('/api/settings/banner', async (req, res) => {
   try {
     const result = await pool.query(
@@ -721,7 +918,6 @@ app.get('/api/settings/banner', async (req, res) => {
   }
 });
 
-// Obtener lista de usuarios (solo admin)
 app.get('/api/users', authenticateToken, isAdmin, async (req, res) => {
   try {
     const result = await pool.query(
@@ -733,6 +929,33 @@ app.get('/api/users', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
+// NUEVO: Endpoint para ver límites de imágenes (público)
+app.get('/api/image-limits', (req, res) => {
+  res.json({
+    profile: {
+      resultSize: '~300 KB',
+      resultDimensions: '400x400px',
+      formats: ['JPG', 'PNG', 'GIF'],
+      acceptsAnySize: true,
+      message: '📸 Sube cualquier foto desde tu celular, nosotros la optimizaremos automáticamente'
+    },
+    banner: {
+      resultSize: '~600 KB',
+      resultDimensions: '1920x400px',
+      formats: ['JPG', 'PNG', 'GIF'],
+      acceptsAnySize: true,
+      message: '🎨 Sube cualquier imagen, nosotros la ajustaremos al tamaño perfecto'
+    },
+    submission: {
+      resultSize: '~1.5 MB',
+      resultDimensions: 'Máx 1200px de ancho',
+      formats: ['JPG', 'PNG', 'GIF', 'PDF'],
+      acceptsAnySize: true,
+      message: '📄 Sube tu foto o PDF directamente, nosotros nos encargamos del resto'
+    }
+  });
+});
+
 // ==================== INICIAR SERVIDOR ====================
 
 app.listen(PORT, () => {
@@ -740,4 +963,5 @@ app.listen(PORT, () => {
   console.log(`📊 Base de datos: PostgreSQL`);
   console.log(`👤 Usuario admin: admin@loyalty.com / admin123`);
   console.log(`✅ Listo para recibir peticiones`);
+  console.log(`🖼️  Optimización de imágenes: ACTIVADA`);
 });

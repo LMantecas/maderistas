@@ -1,7 +1,7 @@
 {
   "name": "programa-de-lealtad",
-  "version": "1.0.0",
-  "description": "Sistema de lealtad con PostgreSQL",
+  "version": "1.1.0",
+  "description": "Sistema de lealtad con PostgreSQL y optimización de imágenes",
   "main": "server.js",
   "scripts": {
     "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node server.js",
@@ -9,7 +9,7 @@
     "start:prod": "node server.js",
     "reset-db": "NODE_TLS_REJECT_UNAUTHORIZED=0 node reset-database.js"
   },
-  "keywords": ["loyalty", "rewards", "postgresql"],
+  "keywords": ["loyalty", "rewards", "postgresql", "image-optimization"],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -19,12 +19,13 @@
     "bcrypt": "^5.1.1",
     "jsonwebtoken": "^9.0.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   }
 }
