@@ -1,4 +1,4 @@
-// Frontend - Componentes simplificados
+import React from 'react';
 
 // ==================== AVATAR CON INICIALES ====================
 const Avatar = ({ user, size = 'md' }) => {
@@ -192,6 +192,7 @@ const SubmissionUpload = ({ rewardId, onSuccess }) => {
         setPreview(null);
       }
     } catch (error) {
+      console.error(error);
     } finally {
       setUploading(false);
     }
@@ -210,7 +211,7 @@ const SubmissionUpload = ({ rewardId, onSuccess }) => {
         ) : (
           <div>
             <div className="text-6xl mb-2">📎</div>
-            <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+            <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
               Seleccionar archivo
             </button>
           </div>
@@ -251,6 +252,7 @@ const DuplicateRewardButton = ({ rewardId, onSuccess }) => {
         if (onSuccess) onSuccess();
       }
     } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
