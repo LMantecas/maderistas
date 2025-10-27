@@ -33,12 +33,8 @@ const Avatar = ({ user, size = 'md' }) => {
   );
 };
 
-// ==================== ALERTA SIMPLE ====================
-const ImageOptimizationInfo = () => (
-  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-blue-700">
-    ✨ <strong>Optimización automática:</strong> Sube cualquier foto, la ajustaremos automáticamente al mejor tamaño y calidad.
-  </div>
-);
+// ==================== ALERTA SIMPLE (INVISIBLE) ====================
+const ImageOptimizationInfo = () => null;
 
 // ==================== SUBIR FOTO DE PERFIL ====================
 const PhotoUpload = ({ currentPhoto, onSuccess }) => {
@@ -54,7 +50,7 @@ const PhotoUpload = ({ currentPhoto, onSuccess }) => {
     setError(null);
 
     if (!file.type.startsWith('image/')) {
-      setError('Solo imágenes por favor');
+      setError('Solo se permiten imágenes');
       return;
     }
 
@@ -92,7 +88,7 @@ const PhotoUpload = ({ currentPhoto, onSuccess }) => {
   };
 
   const handleDelete = async () => {
-    if (!confirm('¿Eliminar foto?')) return;
+    if (!confirm('¿Eliminar foto de perfil?')) return;
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
@@ -114,15 +110,13 @@ const PhotoUpload = ({ currentPhoto, onSuccess }) => {
 
   return (
     <div className="space-y-4">
-      <ImageOptimizationInfo />
-      
       <div className="flex flex-col items-center space-y-4">
         <div className="relative">
           {preview ? (
-            <img src={preview} alt="Foto" className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg" />
+            <img src={preview} alt="Foto de perfil" className="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-lg" />
           ) : (
             <div className="w-32 h-32 rounded-full bg-gray-300 flex items-center justify-center shadow-lg">
-              <span className="text-5xl">📷</span>
+              <span className="text-5xl">👤</span>
             </div>
           )}
           {uploading && (
@@ -132,15 +126,15 @@ const PhotoUpload = ({ currentPhoto, onSuccess }) => {
           )}
         </div>
 
-        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">❌ {error}</div>}
+        {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">{error}</div>}
 
         <div className="flex space-x-2">
-          <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-            {preview ? '🔄 Cambiar' : '📤 Subir'}
+          <button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
+            {preview ? 'Cambiar foto' : 'Subir foto'}
           </button>
           {preview && (
-            <button onClick={handleDelete} disabled={uploading} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
-              🗑️ Eliminar
+            <button onClick={handleDelete} disabled={uploading} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium">
+              Eliminar
             </button>
           )}
         </div>
@@ -200,18 +194,21 @@ const SubmissionUpload = ({ rewardId, onSuccess }) => {
 
   return (
     <div className="space-y-4">
-      <ImageOptimizationInfo />
-      
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-400 transition-colors">
         {preview ? (
           <div>
-            {preview === 'PDF' ? <div className="text-6xl">📄</div> : <img src={preview} alt="Preview" className="max-h-48 mx-auto rounded-lg" />}
+            {preview === 'PDF' ? (
+              <div className="text-6xl mb-2">📄</div>
+            ) : (
+              <img src={preview} alt="Vista previa" className="max-h-48 mx-auto rounded-lg" />
+            )}
             <p className="text-sm text-gray-600 mt-2">{file.name}</p>
           </div>
         ) : (
           <div>
             <div className="text-6xl mb-2">📎</div>
-            <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            <p className="text-gray-600 mb-3">Arrastra tu archivo aquí o</p>
+            <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
               Seleccionar archivo
             </button>
           </div>
@@ -221,11 +218,11 @@ const SubmissionUpload = ({ rewardId, onSuccess }) => {
 
       {file && (
         <div className="flex space-x-2">
-          <button onClick={handleUpload} disabled={uploading} className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg disabled:opacity-50">
-            {uploading ? '⏳ Subiendo...' : '✅ Enviar'}
+          <button onClick={handleUpload} disabled={uploading} className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium">
+            {uploading ? 'Subiendo...' : 'Enviar evidencia'}
           </button>
-          <button onClick={() => { setFile(null); setPreview(null); }} disabled={uploading} className="px-6 py-3 bg-gray-600 text-white rounded-lg">
-            ❌
+          <button onClick={() => { setFile(null); setPreview(null); }} disabled={uploading} className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-medium">
+            Cancelar
           </button>
         </div>
       )}
@@ -238,7 +235,7 @@ const DuplicateRewardButton = ({ rewardId, onSuccess }) => {
   const [loading, setLoading] = React.useState(false);
 
   const handleDuplicate = async () => {
-    if (!confirm('¿Duplicar?')) return;
+    if (!confirm('¿Duplicar esta recompensa?')) return;
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -248,19 +245,21 @@ const DuplicateRewardButton = ({ rewardId, onSuccess }) => {
       });
 
       if (response.ok) {
-        alert('✅ Duplicada');
+        alert('Recompensa duplicada exitosamente');
         if (onSuccess) onSuccess();
+      } else {
+        alert('Error al duplicar');
       }
     } catch (error) {
-      console.error(error);
+      alert('Error de conexión');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <button onClick={handleDuplicate} disabled={loading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg disabled:opacity-50">
-      {loading ? '⏳' : '📋'} Duplicar
+    <button onClick={handleDuplicate} disabled={loading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium">
+      {loading ? 'Duplicando...' : 'Duplicar'}
     </button>
   );
 };
