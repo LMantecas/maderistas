@@ -1,4 +1,5 @@
 import React from 'react';
+import { API_URL } from './config';
 
 // ==================== AVATAR CON INICIALES ====================
 const Avatar = ({ user, size = 'md' }) => {
@@ -64,7 +65,7 @@ const PhotoUpload = ({ currentPhoto, onSuccess }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/auth/update-photo', {
+      const response = await fetch(`${API_URL}/auth/update-photo`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -92,7 +93,7 @@ const PhotoUpload = ({ currentPhoto, onSuccess }) => {
     setUploading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/auth/delete-photo', {
+      const response = await fetch(`${API_URL}/auth/delete-photo`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -174,7 +175,7 @@ const SubmissionUpload = ({ rewardId, onSuccess }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/submissions', {
+      const response = await fetch(`${API_URL}/submissions`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -239,7 +240,7 @@ const DuplicateRewardButton = ({ rewardId, onSuccess }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/rewards/${rewardId}/duplicate`, {
+      const response = await fetch(`${API_URL}/rewards/${rewardId}/duplicate`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
