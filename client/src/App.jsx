@@ -1,7 +1,13 @@
 import { API_URL, API_HOST } from './config';
 import React, { useState, useEffect } from 'react';
 import { Camera, Award, Trophy, Users, Mail, Settings, LogOut, Edit, Trash, Check, X, Search, Crown, Star, Menu, ArrowLeft, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-
+  import { 
+  Avatar, 
+  PhotoUploadWithLimits, 
+  SubmissionUpload,
+  ImageLimitsAlert,
+  DuplicateRewardButton 
+} from './frontend-components';
 
 export default function LoyaltyProgram() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -1024,4 +1030,69 @@ function MessagesTab() {
       )}
     </div>
   );
+
+// En el Ranking
+function RankingPage({ users }) {
+  return (
+    <div>
+      {users.map(user => (
+        <div key={user.id} className="flex items-center space-x-4">
+          <Avatar user={user} size="lg" />
+          <div>
+            <h3>{user.name}</h3>
+            <p>{user.points} puntos</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// En el Perfil del Usuario
+function ProfilePage({ currentUser }) {
+  return (
+    <div>
+      <h2>Mi Perfil</h2>
+      <PhotoUploadWithLimits 
+        currentPhoto={currentUser.photo}
+        onUploadSuccess={(photo) => {
+          // Actualizar estado del usuario
+          console.log('Nueva foto:', photo);
+        }}
+      />
+    </div>
+  );
+}
+
+// Al enviar evidencia
+function RewardDetailPage({ reward }) {
+  return (
+    <div>
+      <h2>{reward.title}</h2>
+      <SubmissionUpload 
+        rewardId={reward.id}
+        onSuccess={() => {
+          alert('Evidencia enviada');
+        }}
+      />
+    </div>
+  );
+}
+
+// En admin de recompensas
+function AdminRewardsPage({ rewards, onRewardDuplicated }) {
+  return (
+    <div>
+      {rewards.map(reward => (
+        <div key={reward.id}>
+          <h3>{reward.title}</h3>
+          <DuplicateRewardButton 
+            rewardId={reward.id}
+            onSuccess={onRewardDuplicated}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 }
