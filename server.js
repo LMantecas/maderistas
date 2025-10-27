@@ -74,7 +74,7 @@ if (!fs.existsSync('uploads/banners')) fs.mkdirSync('uploads/banners');
 // Configuración de Multer para archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const folder = req.path.includes('profile') ? 'uploads/profiles' : 
+    const folder = req.path.includes('profile') ? 'uploads/banners' : 
                    req.path.includes('banner') ? 'uploads/banners' : 
                    'uploads/submissions';
     cb(null, folder);
@@ -295,7 +295,7 @@ app.post('/api/auth/update-photo', authenticateToken, upload.single('photo'), op
       return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
     }
 
-    const photo = `/uploads/profiles/${req.file.filename}`;
+    const photo = `/uploads/banners/${req.file.filename}`;
     
     const oldPhotoResult = await pool.query(
       'SELECT photo FROM users WHERE id = $1',
