@@ -36,6 +36,19 @@ const pool = new Pool(dbConfig);
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// DEBUG: Verificar uploads
+const uploadsPath = path.join(__dirname, 'uploads');
+console.log('📁 Static path:', uploadsPath);
+console.log('📁 Directory exists:', fs.existsSync(uploadsPath));
+if (fs.existsSync(uploadsPath)) {
+  console.log('📂 Profiles:', fs.existsSync(path.join(uploadsPath, 'profiles')));
+  try {
+    const files = fs.readdirSync(path.join(uploadsPath, 'profiles'));
+    console.log('📂 Files in profiles:', files.length);
+  } catch (e) {
+    console.log('❌ Error reading profiles:', e.message);
+  }
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
