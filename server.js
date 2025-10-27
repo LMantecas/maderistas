@@ -210,7 +210,7 @@ const isAdmin = (req, res, next) => {
 app.post('/api/auth/register', upload.single('photo'), optimizeImage('profile'), async (req, res) => {
   try {
     const { username, password, name, email } = req.body;
-    const photo = req.file ? `/uploads/profiles/${req.file.filename}` : null;
+    const photo = req.file ? `/uploads/banners/${req.file.filename}` : null;
 
     const existing = await pool.query(
       'SELECT id FROM users WHERE username = $1 OR email = $2',
