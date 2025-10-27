@@ -1,12 +1,12 @@
 import { API_URL, API_HOST } from './config';
 import React, { useState, useEffect } from 'react';
 import { Camera, Award, Trophy, Users, Mail, Settings, LogOut, Edit, Trash, Check, X, Search, Crown, Star, Menu, ArrowLeft, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-  import { 
+import { 
   Avatar, 
-  PhotoUploadWithLimits, 
+  PhotoUpload, 
   SubmissionUpload,
-  ImageLimitsAlert,
-  DuplicateRewardButton 
+  DuplicateRewardButton,
+  ImageOptimizationInfo
 } from './frontend-components';
 
 export default function LoyaltyProgram() {
@@ -212,7 +212,7 @@ export default function LoyaltyProgram() {
         {currentSection === 'rewards' && !selectedReward && <RewardsSection rewards={rewards} banner={banner} currentUser={currentUser} setSelectedReward={setSelectedReward} />}
         {currentSection === 'rewards' && selectedReward && <RewardDetailSection reward={selectedReward} setSelectedReward={setSelectedReward} currentUser={currentUser} loadRewards={loadRewards} navigateTo={navigateTo} />}
         {currentSection === 'ranking' && <RankingSection ranking={ranking} currentUser={currentUser} />}
-        {currentSection === 'account' && currentUser && <AccountSection currentUser={currentUser} submissions={submissions} ranking={ranking} />}
+        {currentSection === 'account' && currentUser && <AccountSection currentUser={currentUser} setCurrentUser={setCurrentUser} submissions={submissions} ranking={ranking} />}
         {currentSection === 'contact' && currentUser && <ContactSection />}
         {currentSection === 'admin' && currentUser?.is_admin && <AdminSection colors={colors} setColors={setColors} loadColors={loadColors} loadRewards={loadRewards} loadBanner={loadBanner} />}
       </div>
@@ -277,6 +277,7 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
                 <input type="text" required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" onChange={(e) => setFormData({...formData, username: e.target.value})} />
               </div>
               <div>
+                <ImageOptimizationInfo />
                 <label className="block text-sm font-medium mb-2">Foto de Perfil (opcional)</label>
                 <input type="file" accept="image/*" className="w-full px-4 py-2 border rounded-lg" onChange={(e) => setPhoto(e.target.files[0])} />
               </div>
@@ -303,7 +304,6 @@ function RewardsSection({ rewards, banner, currentUser, setSelectedReward }) {
     <div>
       {banner && banner.image_path && (
         <div className="w-full h-64 rounded-2xl overflow-hidden mb-8 cursor-pointer shadow-xl" onClick={() => banner.url && window.open(banner.url, '_blank')}>
-          {/* <img src={`http://localhost:3000${banner.image_path}`} alt="Banner" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" /> */}
           <img src={`${API_HOST}${banner.image_path}`} alt="Banner" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
         </div>
       )}
@@ -339,9 +339,7 @@ function RewardsSection({ rewards, banner, currentUser, setSelectedReward }) {
 
 function RewardDetailSection({ reward: initialReward, setSelectedReward, currentUser, loadRewards, navigateTo }) {
   const [reward, setReward] = useState(initialReward);
-  const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadRewardDetail();
@@ -357,39 +355,6 @@ function RewardDetailSection({ reward: initialReward, setSelectedReward, current
       setReward(data);
     } catch (err) {
       console.error('Error loading reward detail:', err);
-    }
-  };
-
-  const handleRedeem = async (e) => {
-    e.preventDefault();
-    if (!file) {
-      setMessage('Por favor selecciona un archivo');
-      return;
-    }
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('reward_id', reward.id);
-      formData.append('file', file);
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/submissions`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setMessage('¡Evidencia enviada! Espera la validación del administrador.');
-      setFile(null);
-      setTimeout(() => {
-        loadRewards();
-        loadRewardDetail();
-        setMessage('');
-      }, 2000);
-    } catch (err) {
-      setMessage(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -450,15 +415,17 @@ function RewardDetailSection({ reward: initialReward, setSelectedReward, current
               {message && (
                 <div className={`p-3 rounded-lg mb-4 ${message.includes('Error') || message.includes('selecciona') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{message}</div>
               )}
-              <form onSubmit={handleRedeem}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">Subir Evidencia</label>
-                  <input type="file" accept="image/*,application/pdf" required className="w-full px-4 py-2 border rounded-lg" onChange={(e) => setFile(e.target.files[0])} />
-                </div>
-                <button type="submit" disabled={loading} className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50">
-                  {loading ? 'Enviando...' : 'Enviar Evidencia'}
-                </button>
-              </form>
+              <SubmissionUpload 
+                rewardId={reward.id}
+                onSuccess={() => {
+                  setMessage('¡Evidencia enviada! Espera la validación del administrador.');
+                  setTimeout(() => {
+                    loadRewards();
+                    loadRewardDetail();
+                    setMessage('');
+                  }, 2000);
+                }}
+              />
             </div>
           ) : null}
         </div>
@@ -492,13 +459,8 @@ function RankingSection({ ranking, currentUser }) {
               {user.position === 1 && <Crown className="absolute -top-3 left-0 text-yellow-500 w-6 h-6" />}
               #{user.position}
             </div>
-            <div className="w-14 h-14 rounded-full bg-purple-200 flex items-center justify-center overflow-hidden mr-4">
-              {user.photo ? (
-                // <img src={`http://localhost:3000${user.photo}`} alt={user.name} className="w-full h-full object-cover" />
-                <img src={`${API_HOST}${user.photo}`} alt={user.name} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-2xl font-bold text-purple-600">{user.username[0].toUpperCase()}</span>
-              )}
+            <div className="mr-4">
+              <Avatar user={user} size="lg" />
             </div>
             <div className="flex-1">
               <div className="font-bold text-lg">{user.username}</div>
@@ -515,7 +477,7 @@ function RankingSection({ ranking, currentUser }) {
   );
 }
 
-function AccountSection({ currentUser, submissions, ranking }) {
+function AccountSection({ currentUser, setCurrentUser, submissions, ranking }) {
   const userPosition = ranking.findIndex(u => u.id === currentUser.id) + 1;
 
   return (
@@ -529,6 +491,17 @@ function AccountSection({ currentUser, submissions, ranking }) {
           <div className="text-5xl font-bold mb-2">#{userPosition || '-'}</div>
           <div className="text-xl opacity-90">Posición en Ranking</div>
         </div>
+      </div>
+      <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+        <h3 className="text-2xl font-bold mb-4 text-purple-600">Foto de Perfil</h3>
+        <PhotoUpload 
+          currentPhoto={currentUser.photo}
+          onSuccess={(newPhoto) => {
+            const updatedUser = { ...currentUser, photo: newPhoto };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }}
+        />
       </div>
       <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
         <h3 className="text-2xl font-bold mb-4 text-purple-600">Información de Cuenta</h3>
@@ -715,6 +688,7 @@ function BannerTab({ loadBanner }) {
     <div>
       <h3 className="text-xl font-bold mb-4">Banner Promocional</h3>
       {message && <div className="bg-green-100 text-green-700 p-3 rounded-lg mb-4">{message}</div>}
+      <ImageOptimizationInfo />
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">Imagen del Banner</label>
@@ -840,6 +814,13 @@ function RewardsTab({ loadRewards }) {
                 </div>
               </div>
               <div className="flex gap-2 ml-4">
+                <DuplicateRewardButton 
+                  rewardId={reward.id}
+                  onSuccess={() => {
+                    loadRewardsList();
+                    loadRewards();
+                  }}
+                />
                 <button onClick={() => handleSuspend(reward.id, reward.is_suspended)} className={`p-2 ${reward.is_suspended ? 'bg-green-500' : 'bg-orange-500'} text-white rounded-lg hover:opacity-80`} title={reward.is_suspended ? 'Reactivar' : 'Suspender'}>
                   {reward.is_suspended ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
                 </button>
@@ -923,7 +904,6 @@ function SubmissionsTab() {
                   <span className="inline-block mt-2 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">Vale {sub.points} puntos</span>
                 </div>
               </div>
-              {/* <div className="mb-4"><a href={`http://localhost:3000${sub.file_path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Ver archivo enviado →</a></div> */}
               <div className="mb-4"><a href={`${API_HOST}${sub.file_path}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Ver archivo enviado →</a></div>
               <div className="flex gap-3">
                 <button onClick={() => handleApprove(sub.id)} className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600"><Check className="w-5 h-5" /> Aprobar</button>
@@ -1030,69 +1010,4 @@ function MessagesTab() {
       )}
     </div>
   );
-
-// En el Ranking
-function RankingPage({ users }) {
-  return (
-    <div>
-      {users.map(user => (
-        <div key={user.id} className="flex items-center space-x-4">
-          <Avatar user={user} size="lg" />
-          <div>
-            <h3>{user.name}</h3>
-            <p>{user.points} puntos</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// En el Perfil del Usuario
-function ProfilePage({ currentUser }) {
-  return (
-    <div>
-      <h2>Mi Perfil</h2>
-      <PhotoUploadWithLimits 
-        currentPhoto={currentUser.photo}
-        onUploadSuccess={(photo) => {
-          // Actualizar estado del usuario
-          console.log('Nueva foto:', photo);
-        }}
-      />
-    </div>
-  );
-}
-
-// Al enviar evidencia
-function RewardDetailPage({ reward }) {
-  return (
-    <div>
-      <h2>{reward.title}</h2>
-      <SubmissionUpload 
-        rewardId={reward.id}
-        onSuccess={() => {
-          alert('Evidencia enviada');
-        }}
-      />
-    </div>
-  );
-}
-
-// En admin de recompensas
-function AdminRewardsPage({ rewards, onRewardDuplicated }) {
-  return (
-    <div>
-      {rewards.map(reward => (
-        <div key={reward.id}>
-          <h3>{reward.title}</h3>
-          <DuplicateRewardButton 
-            rewardId={reward.id}
-            onSuccess={onRewardDuplicated}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
 }
