@@ -40,19 +40,24 @@ app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, 'uploads')));
-// DEBUG: Verificar uploads
-const uploadsPath = path.join(__dirname, 'uploads');
-console.log('📁 Static path:', uploadsPath);
-console.log('📁 Directory exists:', fs.existsSync(uploadsPath));
-if (fs.existsSync(uploadsPath)) {
-  console.log('📂 Profiles:', fs.existsSync(path.join(uploadsPath, 'profiles')));
-  try {
-    const files = fs.readdirSync(path.join(uploadsPath, 'profiles'));
-    console.log('📂 Files in profiles:', files.length);
-  } catch (e) {
-    console.log('❌ Error reading profiles:', e.message);
+// Middleware para loggear todas las peticiones de archivos estáticos
+app.use('/uploads', (req, res, next) => {
+  const fullPath = path.join(__dirname, 'uploads', req.path);
+  console.log('🔍 Buscando archivo:', req.path);
+  console.log('📂 Path completo:', fullPath);
+  console.log('📁 Existe?', fs.existsSync(fullPath));
+  if (fs.existsSync(fullPath)) {
+    console.log('✅ Archivo encontrado, sirviendo...');
+  } else {
+    console.log('❌ Archivo NO existe');
+    // Listar archivos en el directorio
+    const dir = path.dirname(fullPath);
+    if (fs.existsSync(dir)) {
+      console.log('📂 Archivos en directorio:', fs.readdirSync(dir));
+    }
   }
-}
+  next();
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -324,6 +329,16 @@ app.post('/api/auth/update-photo', authenticateToken, upload.single('photo'), op
     res.status(500).json({ error: error.message });
   }
 });
+
+res.json({ 
+  message: 'Foto actualizada exitosamente',
+  photo: photo
+});
+
+// LOG después de guardar
+console.log('💾 Foto guardada:', photo);
+console.log('📂 Path absoluto:', path.join(__dirname, photo));
+console.log('✅ Archivo existe después de guardar?', fs.existsSync(path.join(__dirname, photo)));
 
 // NUEVO: Eliminar foto de perfil
 app.delete('/api/auth/delete-photo', authenticateToken, async (req, res) => {
