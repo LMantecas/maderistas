@@ -81,11 +81,11 @@ if (!fs.existsSync('uploads/banners')) fs.mkdirSync('uploads/banners');
 // Configuración de Multer para archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-  const folder = req.path.includes('update-photo') || req.path.includes('register') ? 'uploads/banners' : 
-                 req.path.includes('banner') ? 'uploads/banners' : 
-                 'uploads/submissions';
-  cb(null, folder);
-},
+    const folder = req.path.includes('profile') ? 'uploads/banners' : 
+                   req.path.includes('banner') ? 'uploads/banners' : 
+                   'uploads/submissions';
+    cb(null, folder);
+  },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
@@ -213,14 +213,50 @@ const isAdmin = (req, res, next) => {
 
 // ==================== RUTAS DE AUTENTICACIÓN ====================
 
+// Validar username disponible (case-insensitive, sin espacios)
+app.post('/api/auth/check-username', async (req, res) => {
+  try {
+    const { username } = req.body;
+    
+    if (!username) {
+      return res.json({ available: false, message: 'Usuario requerido' });
+    }
+    
+    // Validar que no tenga espacios
+    if (/\s/.test(username)) {
+      return res.json({ available: false, message: 'El usuario no puede contener espacios' });
+    }
+    
+    // Buscar case-insensitive
+    const existing = await pool.query(
+      'SELECT id FROM users WHERE LOWER(username) = LOWER($1)',
+      [username]
+    );
+    
+    if (existing.rows.length > 0) {
+      return res.json({ available: false, message: 'Este usuario ya está registrado' });
+    }
+    
+    res.json({ available: true, message: 'Usuario disponible' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Registro (CON OPTIMIZACIÓN)
 app.post('/api/auth/register', upload.single('photo'), optimizeImage('profile'), async (req, res) => {
   try {
     const { username, password, name, email } = req.body;
     const photo = req.file ? `/uploads/banners/${req.file.filename}` : null;
+    
+    // Validar que username no tenga espacios
+    if (/\s/.test(username)) {
+      return res.status(400).json({ error: 'El usuario no puede contener espacios' });
+    }
 
+    // Validar case-insensitive
     const existing = await pool.query(
-      'SELECT id FROM users WHERE username = $1 OR email = $2',
+      'SELECT id FROM users WHERE LOWER(username) = LOWER($1) OR email = $2',
       [username, email]
     );
 

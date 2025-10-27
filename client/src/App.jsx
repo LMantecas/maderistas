@@ -1,6 +1,6 @@
 import { API_URL, API_HOST } from './config';
 import React, { useState, useEffect } from 'react';
-import { Camera, Award, Trophy, Users, Mail, Settings, LogOut, Edit, Trash, Check, X, Search, Crown, Star, Menu, ArrowLeft, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Camera, Award, Trophy, Users, Mail, Settings, LogOut, Edit, Trash, Check, X, Search, Crown, Star, Menu, ArrowLeft, AlertCircle, CheckCircle, Clock, Eye, EyeOff, XCircle } from 'lucide-react';
 import { 
   Avatar, 
   PhotoUpload, 
@@ -8,6 +8,7 @@ import {
   DuplicateRewardButton,
   ImageOptimizationInfo
 } from './frontend-components';
+import AuthSection from './AuthSection';
 
 export default function LoyaltyProgram() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -215,85 +216,6 @@ export default function LoyaltyProgram() {
         {currentSection === 'account' && currentUser && <AccountSection currentUser={currentUser} setCurrentUser={setCurrentUser} submissions={submissions} ranking={ranking} />}
         {currentSection === 'contact' && currentUser && <ContactSection />}
         {currentSection === 'admin' && currentUser?.is_admin && <AdminSection colors={colors} setColors={setColors} loadColors={loadColors} loadRewards={loadRewards} loadBanner={loadBanner} />}
-      </div>
-    </div>
-  );
-}
-
-function AuthSection({ setCurrentUser, setCurrentSection }) {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({});
-  const [photo, setPhoto] = useState(null);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    try {
-      if (isLogin) {
-        const res = await fetch(`${API_URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: formData.email, password: formData.password })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setCurrentUser(data.user);
-        setCurrentSection('rewards');
-      } else {
-        const form = new FormData();
-        Object.keys(formData).forEach(key => form.append(key, formData[key]));
-        if (photo) form.append('photo', photo);
-        const res = await fetch(`${API_URL}/auth/register`, { method: 'POST', body: form });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
-        setSuccess('Cuenta creada exitosamente. Ahora puedes iniciar sesión.');
-        setTimeout(() => setIsLogin(true), 2000);
-      }
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  return (
-    <div className="flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <h2 className="text-3xl font-bold text-center mb-6 text-purple-600">{isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}</h2>
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4">{error}</div>}
-        {success && <div className="bg-green-100 text-green-700 p-3 rounded-lg mb-4">{success}</div>}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <>
-              <div>
-                <label className="block text-sm font-medium mb-2">Nombre Completo</label>
-                <input type="text" required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" onChange={(e) => setFormData({...formData, name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Usuario</label>
-                <input type="text" required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" onChange={(e) => setFormData({...formData, username: e.target.value})} />
-              </div>
-              <div>
-                <ImageOptimizationInfo />
-                <label className="block text-sm font-medium mb-2">Foto de Perfil (opcional)</label>
-                <input type="file" accept="image/*" className="w-full px-4 py-2 border rounded-lg" onChange={(e) => setPhoto(e.target.files[0])} />
-              </div>
-            </>
-          )}
-          <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <input type="email" required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" onChange={(e) => setFormData({...formData, email: e.target.value})} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Contraseña</label>
-            <input type="password" required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" onChange={(e) => setFormData({...formData, password: e.target.value})} />
-          </div>
-          <button type="submit" className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition">{isLogin ? 'Entrar' : 'Registrarse'}</button>
-        </form>
-        <p className="text-center mt-4">{isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}<button onClick={() => setIsLogin(!isLogin)} className="text-purple-600 font-semibold ml-2">{isLogin ? 'Regístrate aquí' : 'Inicia sesión aquí'}</button></p>
       </div>
     </div>
   );
