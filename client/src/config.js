@@ -1,5 +1,10 @@
 // client/src/config.js
-export const API_URL =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
+const isProduction = import.meta.env.PROD;
 
-export const API_HOST = API_URL.replace(/\/api\/?$/, '');
+export const API_URL = isProduction 
+  ? 'https://maderistas.com/api'
+  : 'http://localhost:3000/api';
+
+export const API_HOST = isProduction
+  ? 'https://maderistas.com'
+  : 'http://localhost:3000';
