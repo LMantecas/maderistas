@@ -81,11 +81,11 @@ if (!fs.existsSync('uploads/banners')) fs.mkdirSync('uploads/banners');
 // Configuración de Multer para archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const folder = req.path.includes('profile') ? 'uploads/banners' : 
-                   req.path.includes('banner') ? 'uploads/banners' : 
-                   'uploads/submissions';
-    cb(null, folder);
-  },
+  const folder = req.path.includes('update-photo') || req.path.includes('register') ? 'uploads/banners' : 
+                 req.path.includes('banner') ? 'uploads/banners' : 
+                 'uploads/submissions';
+  cb(null, folder);
+},
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
