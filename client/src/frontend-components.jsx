@@ -1,5 +1,5 @@
 import React from 'react';
-import { API_URL } from './config';
+import { API_URL, API_HOST } from './config';
 
 // ==================== AVATAR CON INICIALES ====================
 const Avatar = ({ user, size = 'md' }) => {
@@ -17,9 +17,10 @@ const Avatar = ({ user, size = 'md' }) => {
   };
 
   if (user.photo) {
+    const photoUrl = user.photo.startsWith('http') ? user.photo : `${API_HOST}${user.photo}`;
     return (
       <div className="relative">
-        <img src={user.photo} alt={user.name} className={`${sizes[size]} rounded-full object-cover border-2 border-white shadow-md`} onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+        <img src={photoUrl} alt={user.name} className={`${sizes[size]} rounded-full object-cover border-2 border-white shadow-md`} onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
         <div className={`${sizes[size]} ${getColor(user.name)} rounded-full flex items-center justify-center text-white font-bold shadow-md border-2 border-white`} style={{display:'none'}}>
           {getInitials(user.name || user.username)}
         </div>
@@ -40,7 +41,7 @@ const ImageOptimizationInfo = () => null;
 // ==================== SUBIR FOTO DE PERFIL ====================
 const PhotoUpload = ({ currentPhoto, onSuccess }) => {
   const [uploading, setUploading] = React.useState(false);
-  const [preview, setPreview] = React.useState(currentPhoto);
+  const [preview, setPreview] = React.useState(currentPhoto ? (currentPhoto.startsWith('http') ? currentPhoto : `${API_HOST}${currentPhoto}`) : null);
   const [error, setError] = React.useState(null);
   const fileInputRef = React.useRef(null);
 
@@ -74,15 +75,17 @@ const PhotoUpload = ({ currentPhoto, onSuccess }) => {
       const data = await response.json();
 
       if (response.ok) {
+        const fullPhotoUrl = data.photo.startsWith('http') ? data.photo : `${API_HOST}${data.photo}`;
+        setPreview(fullPhotoUrl);
         if (onSuccess) onSuccess(data.photo);
         setError(null);
       } else {
         setError(data.error);
-        setPreview(currentPhoto);
+        setPreview(currentPhoto ? (currentPhoto.startsWith('http') ? currentPhoto : `${API_HOST}${currentPhoto}`) : null);
       }
     } catch (error) {
       setError('Error de conexión');
-      setPreview(currentPhoto);
+      setPreview(currentPhoto ? (currentPhoto.startsWith('http') ? currentPhoto : `${API_HOST}${currentPhoto}`) : null);
     } finally {
       setUploading(false);
     }
