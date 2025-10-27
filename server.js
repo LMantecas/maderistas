@@ -35,11 +35,14 @@ const pool = new Pool(dbConfig);
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Servir archivos estáticos con headers CORS
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, 'uploads')));
+
 // Middleware para loggear todas las peticiones de archivos estáticos
 app.use('/uploads', (req, res, next) => {
   const fullPath = path.join(__dirname, 'uploads', req.path);
@@ -47,13 +50,12 @@ app.use('/uploads', (req, res, next) => {
   console.log('📂 Path completo:', fullPath);
   console.log('📁 Existe?', fs.existsSync(fullPath));
   if (fs.existsSync(fullPath)) {
-    console.log('✅ Archivo encontrado, sirviendo...');
+    console.log('✅ Archivo encontrado');
   } else {
     console.log('❌ Archivo NO existe');
-    // Listar archivos en el directorio
     const dir = path.dirname(fullPath);
     if (fs.existsSync(dir)) {
-      console.log('📂 Archivos en directorio:', fs.readdirSync(dir));
+      console.log('📂 Archivos en directorio:', fs.readdirSync(dir).slice(0, 5));
     }
   }
   next();
@@ -325,20 +327,15 @@ app.post('/api/auth/update-photo', authenticateToken, upload.single('photo'), op
       message: 'Foto actualizada exitosamente',
       photo: photo
     });
+    
+    // LOG después de guardar
+    console.log('💾 Foto guardada en BD:', photo);
+    console.log('📂 Path absoluto:', path.join(__dirname, photo));
+    console.log('✅ Archivo existe?', fs.existsSync(path.join(__dirname, photo)));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
-res.json({ 
-  message: 'Foto actualizada exitosamente',
-  photo: photo
-});
-
-// LOG después de guardar
-console.log('💾 Foto guardada:', photo);
-console.log('📂 Path absoluto:', path.join(__dirname, photo));
-console.log('✅ Archivo existe después de guardar?', fs.existsSync(path.join(__dirname, photo)));
 
 // NUEVO: Eliminar foto de perfil
 app.delete('/api/auth/delete-photo', authenticateToken, async (req, res) => {
