@@ -47,8 +47,27 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
     setError('');
     setSuccess('');
 
+    // Logging para debugging
+    console.log('FormData actual:', formData);
+
     if (!isLogin) {
-      // Validaciones de registro
+      // Validaciones de registro MÁS ESTRICTAS
+      if (!formData.name || formData.name.trim() === '') {
+        setError('El nombre es obligatorio');
+        return;
+      }
+      if (!formData.username || formData.username.trim() === '') {
+        setError('El usuario es obligatorio');
+        return;
+      }
+      if (!formData.email || formData.email.trim() === '') {
+        setError('El email es obligatorio');
+        return;
+      }
+      if (!formData.password || formData.password.trim() === '') {
+        setError('La contraseña es obligatoria');
+        return;
+      }
       if (formData.password !== confirmPassword) {
         setError('Las contraseñas no coinciden');
         return;
@@ -77,19 +96,48 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
         setCurrentUser(data.user);
         setCurrentSection('rewards');
       } else {
+        // Crear FormData con validación
         const form = new FormData();
-        Object.keys(formData).forEach(key => form.append(key, formData[key]));
+        
+        const username = formData.username?.trim();
+        const password = formData.password?.trim();
+        const name = formData.name?.trim();
+        const email = formData.email?.trim();
+        
+        console.log('Enviando datos:', { username, name, email, password: '***', hasPhoto: !!photo });
+        
+        if (!username || !password || !name || !email) {
+          throw new Error('Todos los campos son obligatorios');
+        }
+        
+        form.append('username', username);
+        form.append('password', password);
+        form.append('name', name);
+        form.append('email', email);
         if (photo) form.append('photo', photo);
+        
+        // Verificar que FormData tiene los datos
+        console.log('FormData entries:');
+        for (let [key, value] of form.entries()) {
+          console.log(key, typeof value === 'string' ? value : '[File]');
+        }
+        
         const res = await fetch(`${API_URL}/auth/register`, { method: 'POST', body: form });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
+        
         setSuccess('¡Cuenta creada! Ahora puedes iniciar sesión.');
+        setFormData({});
+        setConfirmPassword('');
+        setPhoto(null);
+        
         setTimeout(() => {
           setIsLogin(true);
           setSuccess('');
         }, 2000);
       }
     } catch (err) {
+      console.error('Error en handleSubmit:', err);
       setError(err.message);
     }
   };
@@ -112,7 +160,9 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
                 <input 
                   type="text" 
                   required 
+                  autoComplete="name"
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
+                  value={formData.name || ''}
                   onChange={(e) => setFormData({...formData, name: e.target.value})} 
                 />
               </div>
@@ -127,11 +177,13 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
                     type="text" 
                     required 
                     minLength="3"
+                    autoComplete="username"
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none pr-10 ${
                       usernameCheck.available === true ? 'border-green-500 focus:ring-green-500' :
                       usernameCheck.available === false ? 'border-red-500 focus:ring-red-500' :
                       'focus:ring-purple-500'
                     }`}
+                    value={formData.username || ''}
                     onChange={(e) => setFormData({...formData, username: e.target.value.trim()})} 
                     placeholder="SinEspacios"
                   />
@@ -161,7 +213,9 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
             <input 
               type="email" 
               required 
+              autoComplete="email"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
+              value={formData.email || ''}
               onChange={(e) => setFormData({...formData, email: e.target.value})} 
             />
           </div>
@@ -173,7 +227,9 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
                 type={showPassword ? 'text' : 'password'} 
                 required 
                 minLength="6"
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none pr-10" 
+                value={formData.password || ''}
                 onChange={(e) => setFormData({...formData, password: e.target.value})} 
               />
               <button
@@ -236,6 +292,8 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
               setSuccess('');
               setFormData({});
               setConfirmPassword('');
+              setShowPassword(false);
+              setShowConfirmPassword(false);
               setUsernameCheck({ checking: false, available: null, message: '' });
             }} 
             className="text-purple-600 font-semibold ml-2 hover:underline"
