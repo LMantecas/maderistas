@@ -13,6 +13,11 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [usernameCheck, setUsernameCheck] = useState({ checking: false, available: null, message: '' });
 
+  // Función helper para manejar cambios en inputs (incluyendo autocompletado)
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   // Validar username en tiempo real
   useEffect(() => {
     if (!isLogin && formData.username && formData.username.length >= 3) {
@@ -159,11 +164,14 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
                 <label className="block text-sm font-medium mb-2">Nombre Completo</label>
                 <input 
                   type="text" 
+                  name="name"
                   required 
                   autoComplete="name"
                   className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
                   value={formData.name || ''}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  onInput={(e) => handleInputChange('name', e.target.value)}
+                  onBlur={(e) => handleInputChange('name', e.target.value)}
                 />
               </div>
               
@@ -175,6 +183,7 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
                 <div className="relative">
                   <input 
                     type="text" 
+                    name="username"
                     required 
                     minLength="3"
                     autoComplete="username"
@@ -184,7 +193,9 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
                       'focus:ring-purple-500'
                     }`}
                     value={formData.username || ''}
-                    onChange={(e) => setFormData({...formData, username: e.target.value.trim()})} 
+                    onChange={(e) => handleInputChange('username', e.target.value.trim())}
+                    onInput={(e) => handleInputChange('username', e.target.value.trim())}
+                    onBlur={(e) => handleInputChange('username', e.target.value.trim())}
                     placeholder="SinEspacios"
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -212,11 +223,14 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
             <label className="block text-sm font-medium mb-2">Email</label>
             <input 
               type="email" 
+              name="email"
               required 
               autoComplete="email"
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none" 
               value={formData.email || ''}
-              onChange={(e) => setFormData({...formData, email: e.target.value})} 
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              onInput={(e) => handleInputChange('email', e.target.value)}
+              onBlur={(e) => handleInputChange('email', e.target.value)}
             />
           </div>
           
@@ -224,13 +238,16 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
             <label className="block text-sm font-medium mb-2">Contraseña</label>
             <div className="relative">
               <input 
-                type={showPassword ? 'text' : 'password'} 
+                type={showPassword ? 'text' : 'password'}
+                name="password"
                 required 
                 minLength="6"
                 autoComplete={isLogin ? "current-password" : "new-password"}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none pr-10" 
                 value={formData.password || ''}
-                onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                onInput={(e) => handleInputChange('password', e.target.value)}
+                onBlur={(e) => handleInputChange('password', e.target.value)}
               />
               <button
                 type="button"
@@ -247,16 +264,20 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
               <label className="block text-sm font-medium mb-2">Confirmar Contraseña</label>
               <div className="relative">
                 <input 
-                  type={showConfirmPassword ? 'text' : 'password'} 
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirm-password"
                   required 
                   minLength="6"
+                  autoComplete="new-password"
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none pr-10 ${
                     confirmPassword && formData.password === confirmPassword ? 'border-green-500 focus:ring-green-500' :
                     confirmPassword && formData.password !== confirmPassword ? 'border-red-500 focus:ring-red-500' :
                     'focus:ring-purple-500'
                   }`}
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onInput={(e) => setConfirmPassword(e.target.value)}
+                  onBlur={(e) => setConfirmPassword(e.target.value)}
                 />
                 <button
                   type="button"
