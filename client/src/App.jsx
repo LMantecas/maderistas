@@ -9,6 +9,8 @@ import {
   ImageOptimizationInfo
 } from './frontend-components';
 import AuthSection from './AuthSection';
+import Privacy from './Privacy';
+import Terms from './Terms';
 
 export default function LoyaltyProgram() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -118,7 +120,7 @@ export default function LoyaltyProgram() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex flex-col">
       <nav className="bg-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -208,15 +210,49 @@ export default function LoyaltyProgram() {
           )}
         </div>
       </nav>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {currentSection === 'login' && <AuthSection setCurrentUser={setCurrentUser} setCurrentSection={setCurrentSection} />}
+      
+      <div className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
+        {currentSection === 'login' && <AuthSection setCurrentUser={setCurrentUser} setCurrentSection={setCurrentSection} navigateTo={navigateTo} />}
         {currentSection === 'rewards' && !selectedReward && <RewardsSection rewards={rewards} banner={banner} currentUser={currentUser} setSelectedReward={setSelectedReward} />}
         {currentSection === 'rewards' && selectedReward && <RewardDetailSection reward={selectedReward} setSelectedReward={setSelectedReward} currentUser={currentUser} loadRewards={loadRewards} navigateTo={navigateTo} />}
         {currentSection === 'ranking' && <RankingSection ranking={ranking} currentUser={currentUser} />}
         {currentSection === 'account' && currentUser && <AccountSection currentUser={currentUser} setCurrentUser={setCurrentUser} submissions={submissions} ranking={ranking} />}
         {currentSection === 'contact' && currentUser && <ContactSection />}
         {currentSection === 'admin' && currentUser?.is_admin && <AdminSection colors={colors} setColors={setColors} loadColors={loadColors} loadRewards={loadRewards} loadBanner={loadBanner} />}
+        {currentSection === 'privacy' && <Privacy />}
+        {currentSection === 'terms' && <Terms />}
       </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-sm text-gray-600">
+              © 2025 Maderistas. Plataforma lúdica sin fines de lucro.
+            </div>
+            <div className="flex gap-6 text-sm">
+              <button 
+                onClick={() => navigateTo('privacy')} 
+                className="text-purple-600 hover:underline font-medium"
+              >
+                Aviso de Privacidad
+              </button>
+              <button 
+                onClick={() => navigateTo('terms')} 
+                className="text-purple-600 hover:underline font-medium"
+              >
+                Términos y Condiciones
+              </button>
+              <a 
+                href="mailto:contacto@maderistas.com" 
+                className="text-purple-600 hover:underline font-medium"
+              >
+                Contacto
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

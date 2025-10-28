@@ -12,6 +12,8 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [usernameCheck, setUsernameCheck] = useState({ checking: false, available: null, message: '' });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   // Función helper para manejar cambios en inputs (incluyendo autocompletado)
   const handleInputChange = (field, value) => {
@@ -83,6 +85,14 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
       }
       if (!usernameCheck.available) {
         setError('Usuario no disponible');
+        return;
+      }
+      if (!acceptedTerms) {
+        setError('Debes aceptar los Términos y Condiciones');
+        return;
+      }
+      if (!acceptedPrivacy) {
+        setError('Debes aceptar el Aviso de Privacidad');
         return;
       }
     }
@@ -295,9 +305,59 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
             </div>
           )}
           
+          {!isLogin && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start gap-2">
+                <input 
+                  type="checkbox" 
+                  id="terms"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-700">
+                  Acepto los{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open('/terms', '_blank');
+                    }}
+                    className="text-purple-600 font-semibold hover:underline"
+                  >
+                    Términos y Condiciones
+                  </button>
+                </label>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <input 
+                  type="checkbox" 
+                  id="privacy"
+                  checked={acceptedPrivacy}
+                  onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="privacy" className="text-sm text-gray-700">
+                  Acepto el{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open('/privacy', '_blank');
+                    }}
+                    className="text-purple-600 font-semibold hover:underline"
+                  >
+                    Aviso de Privacidad
+                  </button>
+                </label>
+              </div>
+            </div>
+          )}
+          
           <button 
             type="submit" 
-            disabled={!isLogin && !usernameCheck.available}
+            disabled={!isLogin && (!usernameCheck.available || !acceptedTerms || !acceptedPrivacy)}
             className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLogin ? 'Entrar' : 'Registrarse'}
@@ -316,6 +376,8 @@ function AuthSection({ setCurrentUser, setCurrentSection }) {
               setShowPassword(false);
               setShowConfirmPassword(false);
               setUsernameCheck({ checking: false, available: null, message: '' });
+              setAcceptedTerms(false);
+              setAcceptedPrivacy(false);
             }} 
             className="text-purple-600 font-semibold ml-2 hover:underline"
           >
