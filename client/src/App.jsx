@@ -244,7 +244,7 @@ export default function LoyaltyProgram() {
                 Términos y Condiciones
               </button>
               <a 
-                href="mailto:contacto@maderistas.com" 
+                href="mailto:petterpxndx@gmail.com" 
                 className="text-purple-600 hover:underline font-medium"
               >
                 Contacto
