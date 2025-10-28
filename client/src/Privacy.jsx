@@ -16,7 +16,7 @@ export default function Privacy() {
       
       <ul className="list-disc pl-6 space-y-2 mb-4 text-gray-700">
         <li>
-          <strong>Responsable:</strong> "Maderistas" – contacto: petterpxndx@gmail.com
+          <strong>Responsable:</strong> "Maderistas" – contacto: soportemaderistas@gmail.com
         </li>
         <li>
           <strong>Datos:</strong> nombre, usuario, correo electrónico y, opcionalmente, fotografía de perfil.
@@ -31,7 +31,7 @@ export default function Privacy() {
           <strong>Seguridad:</strong> medidas técnicas y administrativas razonables.
         </li>
         <li>
-          <strong>Derechos ARCO:</strong> escribe a petterpxndx@gmail.com con el asunto "Privacidad".
+          <strong>Derechos ARCO:</strong> escribe a soportemaderistas@gmail.com con el asunto "Privacidad".
         </li>
         <li>
           <strong>Cambios:</strong> se publicarán en este sitio.

@@ -27,7 +27,7 @@ export default function Terms() {
           <strong>Limitación de responsabilidad:</strong> el uso es bajo responsabilidad del usuario.
         </li>
         <li>
-          <strong>Contacto:</strong> petterpxndx@gmail.com
+          <strong>Contacto:</strong> soportemaderistas@gmail.com
         </li>
       </ul>
       
