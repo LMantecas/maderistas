@@ -147,7 +147,7 @@ export default function LoyaltyProgram() {
             </button>
             <div className="hidden md:flex gap-4 items-center">
               <button onClick={() => navigateTo('rewards')} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-purple-100 transition">
-                <Trophy className="w-5 h-5" /> Recompensas
+                <Trophy className="w-5 h-5" /> Misiones
               </button>
               <button onClick={() => navigateTo('ranking')} className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-purple-100 transition">
                 <Users className="w-5 h-5" /> Ranking
@@ -179,7 +179,7 @@ export default function LoyaltyProgram() {
           {mobileMenuOpen && (
             <div className="md:hidden mt-4 pb-4 border-t pt-4 space-y-2">
               <button onClick={() => navigateTo('rewards')} className="w-full text-left flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-purple-100 transition">
-                <Trophy className="w-5 h-5" /> Recompensas
+                <Trophy className="w-5 h-5" /> Misiones
               </button>
               <button onClick={() => navigateTo('ranking')} className="w-full text-left flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-purple-100 transition">
                 <Users className="w-5 h-5" /> Ranking
@@ -265,7 +265,7 @@ function RewardsSection({ rewards, banner, currentUser, setSelectedReward }) {
           <img src={`${API_HOST}${banner.image_path}`} alt="Banner" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
         </div>
       )}
-      <h2 className="text-3xl font-bold mb-6 text-purple-600">Recompensas Disponibles</h2>
+      <h2 className="text-3xl font-bold mb-6 text-purple-600">Misiones Disponibles</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rewards.map(reward => (
           <div key={reward.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-all hover:-translate-y-1 cursor-pointer" onClick={() => setSelectedReward(reward)}>
@@ -319,7 +319,7 @@ function RewardDetailSection({ reward: initialReward, setSelectedReward, current
   return (
     <div>
       <button onClick={() => setSelectedReward(null)} className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6 font-semibold">
-        <ArrowLeft className="w-5 h-5" /> Volver a recompensas
+        <ArrowLeft className="w-5 h-5" /> Volver a Misiones
       </button>
       <div className="bg-white rounded-2xl shadow-xl p-8">
         <div className="flex justify-between items-start mb-6">
@@ -755,7 +755,7 @@ function RewardsTab({ loadRewards }) {
           {editId && <button type="button" onClick={() => { setFormData({ title: '', description: '', how_to_redeem: '', points: '', redeem_type: 'unlimited' }); setEditId(null); }} className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300">Cancelar</button>}
         </div>
       </form>
-      <h3 className="text-xl font-bold mb-4">Recompensas Existentes</h3>
+      <h3 className="text-xl font-bold mb-4">Misiones Existentes</h3>
       <div className="space-y-3">
         {rewards.map(reward => (
           <div key={reward.id} className={`border-2 rounded-lg p-4 ${reward.is_suspended ? 'bg-gray-100 opacity-75' : ''}`}>
